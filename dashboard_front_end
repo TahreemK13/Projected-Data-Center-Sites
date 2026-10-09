@@ -1,0 +1,331 @@
+<title>AI Regulation and Data Center Siting</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Layout: one finding on top, one map answering four questions, a narrow evidence column beside it. */
+:root {
+  --page: #f6f7f5; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781; --line: #e1e0d9; --axis: #c3c2b7;
+  --warn: #8a5200; --warn-bg: #fdf1dc;
+  --s1: #cde2fb; --s2: #86b6ef; --s3: #3987e5; --s4: #1c5cab; --s5: #0d366b;
+  --dn2: #c93a39; --dn1: #f2aaa9; --mid: #f0efec; --up1: #9ec5f4; --up2: #256abf;
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --none: #ebeae5;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781; --line: #2c2c2a; --axis: #383835;
+  --warn: #f3b659; --warn-bg: #2e2410;
+  --s1: #0d366b; --s2: #1c5cab; --s3: #3987e5; --s4: #86b6ef; --s5: #cde2fb;
+  --dn2: #e66767; --dn1: #7d3030; --mid: #383835; --up1: #184f95; --up2: #5598e7;
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --none: #2a2a28; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781; --line: #2c2c2a; --axis: #383835;
+  --warn: #f3b659; --warn-bg: #2e2410;
+  --s1: #0d366b; --s2: #1c5cab; --s3: #3987e5; --s4: #86b6ef; --s5: #cde2fb;
+  --dn2: #e66767; --dn1: #7d3030; --mid: #383835; --up1: #184f95; --up2: #5598e7;
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --none: #2a2a28; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--page); color: var(--ink); font: 15px/1.5 var(--sans) }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 48px; display: flex; flex-direction: column; gap: 16px }
+a { color: inherit } :focus-visible { outline: 2px solid var(--c1); outline-offset: 2px }
+.lab { font: 500 11.5px/1.3 var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted) }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0 }
+
+#placeholder { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); border-radius: 8px; padding: 8px 14px; font-size: 14px }
+header h1 { font: 600 clamp(26px, 4vw, 36px)/1.1 var(--cond); margin: 4px 0 6px; text-wrap: balance }
+header p { margin: 0; color: var(--ink2); max-width: 78ch }
+
+.finding { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center }
+.finding .q { flex: 1 1 380px; min-width: 0 }
+.finding .q b { display: block; font: 600 19px/1.3 var(--sans); margin-top: 2px; text-wrap: balance }
+.finding .delta { display: flex; align-items: baseline; gap: 10px }
+.finding .delta strong { font: 600 34px/1 var(--cond) }
+.finding .delta span { color: var(--ink2); font-size: 13.5px; max-width: 24ch; line-height: 1.35 }
+
+.grid { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(280px, 1fr); gap: 16px; align-items: start }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr) } }
+.side { display: flex; flex-direction: column; gap: 16px; min-width: 0 }
+.mapcard { display: flex; flex-direction: column; gap: 10px }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center }
+.seg { display: flex; flex-wrap: wrap; gap: 4px }
+.seg button { font: 500 13.5px var(--sans); color: var(--ink2); background: none; border: 1px solid var(--line); border-radius: 6px; padding: 6px 11px; cursor: pointer }
+.seg button:hover { color: var(--ink); border-color: var(--axis) }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink) }
+#search { font: 14px var(--sans); color: var(--ink); background: var(--surface); border: 1px solid var(--axis); border-radius: 6px; padding: 6px 10px; width: min(100%, 220px); margin-left: auto }
+#caption { margin: 0; color: var(--ink2); font-size: 14px; max-width: 86ch }
+#legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink2) }
+#legend span, .tog .k { display: inline-flex; align-items: center; gap: 6px }
+.sw { width: 14px; height: 14px; border-radius: 3px; flex: none; border: 1px solid var(--line) }
+.tog { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; color: var(--ink2) }
+.tog label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink); flex: none }
+.ring { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--ink); flex: none }
+
+#mapbox { position: relative; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); touch-action: pan-y }
+#map { display: block; width: 100%; height: auto; cursor: grab } #map.drag { cursor: grabbing }
+#map path.c { stroke: var(--surface); stroke-width: .4px; vector-effect: non-scaling-stroke }
+#states { fill: none; stroke: var(--ink2); stroke-width: .9px; vector-effect: non-scaling-stroke; pointer-events: none }
+#sel { fill: none; stroke: var(--ink); stroke-width: 2.5px; vector-effect: non-scaling-stroke; pointer-events: none }
+#sites circle { fill: var(--ink); fill-opacity: .7; stroke: var(--surface); stroke-width: .5px; vector-effect: non-scaling-stroke; pointer-events: none }
+#proj circle { fill: none; stroke: var(--ink); stroke-width: 1.4px; vector-effect: non-scaling-stroke; pointer-events: none }
+#hatch line { stroke: var(--axis) } #hatch rect { fill: var(--none) }
+.zoom { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 4px }
+.zoom button { width: 30px; height: 30px; font: 500 16px var(--mono); color: var(--ink); background: var(--surface); border: 1px solid var(--axis); border-radius: 6px; cursor: pointer }
+#tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--axis); border-radius: 6px; padding: 6px 9px; font-size: 13px; line-height: 1.35; max-width: 230px; z-index: 3 }
+#tip b { display: block }
+
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums }
+th, td { text-align: left; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--line) }
+th { font: 500 11.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
+td.num, th.num { text-align: right; padding: 6px 0 6px 14px; white-space: nowrap } tr:last-child td { border-bottom: 0 }
+tr.key td { font-weight: 600 }
+.small { font-size: 13px; color: var(--ink2); margin: 8px 0 0 }
+
+#county h2 { font: 600 20px/1.2 var(--cond); margin: 4px 0 8px }
+#county dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; margin: 0; font-size: 14px }
+#county dt { color: var(--ink2) } #county dd { margin: 0; text-align: right }
+#county ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px }
+
+.bars { display: flex; flex-direction: column; gap: 9px; margin-top: 10px }
+.bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; font-size: 13.5px; align-items: center }
+.bar .track { grid-column: 1 / -1; height: 10px; background: var(--none); border-radius: 0 4px 4px 0; position: relative }
+.bar .fill { height: 100%; border-radius: 0 4px 4px 0 }
+.bar .avg { position: absolute; top: -3px; bottom: -3px; width: 0; border-left: 1.5px dashed var(--ink2) }
+.bar .name { display: inline-flex; align-items: center; gap: 6px; min-width: 0 }
+
+details summary { cursor: pointer; font-weight: 500 } .scroll { overflow-x: auto; margin-top: 10px }
+footer { color: var(--ink2); font-size: 13.5px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px 28px }
+footer ul { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px }
+</style>
+
+<div class="wrap">
+  <div id="placeholder" hidden></div>
+  <header>
+    <div class="lab">SIADS 696 Milestone II · University of Michigan</div>
+    <h1>AI Regulation and Data Center Siting</h1>
+    <p>We predicted which US counties host a data center, first from infrastructure alone, then with state AI and data center legislation added. This page shows where the model expects data centers, where policy changes that expectation, and how both compare with the national lab forecast that uses no policy data.</p>
+  </header>
+
+  <section class="card finding" aria-label="Headline finding">
+    <div class="q"><span class="lab">Did state policy add signal beyond infrastructure?</span><b id="finding"></b></div>
+    <div class="delta"><strong id="delta"></strong><span id="delta-note"></span></div>
+  </section>
+
+  <div class="grid">
+    <section class="card mapcard" aria-label="County map">
+      <div class="row">
+        <div class="seg" id="layers" role="group" aria-label="Map layer"></div>
+        <input id="search" list="county-list" placeholder="Fairfax, VA" aria-label="Find a county"><datalist id="county-list"></datalist>
+      </div>
+      <p id="caption"></p>
+      <div id="legend"></div>
+      <div id="mapbox">
+        <svg id="map" role="img" aria-label="Map of counties in the lower 48 states, colored by the selected layer">
+          <defs><pattern id="hatch" patternUnits="userSpaceOnUse" width="56" height="56" patternTransform="rotate(45)"><rect width="56" height="56"/><line x1="0" y1="0" x2="0" y2="56" stroke-width="14"/></pattern></defs>
+          <g id="counties"></g><path id="states"/><g id="proj"></g><g id="sites"></g><path id="sel"/>
+        </svg>
+        <div class="zoom"><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="zreset" aria-label="Reset view">⌂</button></div>
+        <div id="tip" hidden></div>
+      </div>
+      <div class="tog">
+        <label><input type="checkbox" id="t-sites" checked><span class="k"><span class="dot"></span>Existing data centers</span></label>
+        <label><input type="checkbox" id="t-proj"><span class="k"><span class="ring"></span>PNNL projected sites</span></label>
+        <label><input type="checkbox" id="t-viable">Fade counties with no suitable land</label>
+      </div>
+    </section>
+
+    <div class="side">
+      <section class="card" aria-label="Model scorecard">
+        <div class="lab">Model scorecard</div>
+        <table id="scores"><thead><tr><th>Features</th><th class="num">PR-AUC</th><th class="num">Brier</th></tr></thead><tbody></tbody></table>
+        <p class="small" id="score-note"></p>
+      </section>
+      <section class="card" id="county" aria-label="Selected county" aria-live="polite"></section>
+      <section class="card" aria-label="Data centers by archetype">
+        <div class="lab">Counties with a data center, by archetype</div>
+        <div class="bars" id="bars"></div>
+        <p class="small">Dashed line: share across all counties.</p>
+      </section>
+    </div>
+  </div>
+
+  <section class="card">
+    <details><summary>Top 25 counties by predicted likelihood, as a table</summary>
+      <div class="scroll"><table id="top"><thead><tr><th>County</th><th class="num">Likelihood</th><th class="num">Change from policy</th><th>Archetype</th><th class="num">Data centers today</th><th>PNNL forecast</th></tr></thead><tbody></tbody></table></div>
+    </details>
+  </section>
+
+  <footer>
+    <div><span class="lab">Read with care</span><ul>
+      <li>These are statistical associations. Nothing shows that a law itself caused a siting decision.</li>
+      <li>Policy features are set by state. Every county in a state shares them & policy changes follow state lines.</li>
+      <li>Existing data centers coming from OpenStreetMap include facilities of every size.</li>
+      <li>PNNL modeled 37 states. Hatched counties have no PNNL forecast, which is different from a forecast of none.</li>
+    </ul></div>
+    <div><span class="lab">Sources</span><ul id="sources"></ul></div>
+    <div><span class="lab">About</span><ul>
+      <li>Chalse Okorom-Achuonye, Tahreem Karim and Khalid Jackson.</li>
+      <li>Methods, evaluation and limits are in the project report.</li>
+      <li id="built"></li>
+    </ul></div>
+  </footer>
+</div>
+
+<script>
+(() => {
+const D = /*DATA*/null/*END*/;
+const N = D.fips.length, $ = id => document.getElementById(id), NS = 'http://www.w3.org/2000/svg';
+const pct = (v, d = 0) => v == null ? 'n/a' : (100 * v).toFixed(d) + '%';
+const pp = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(100 * v).toFixed(1) + ' pts';
+const label = i => D.name[i] + ', ' + D.st[i];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const chg = D.pa.map((v, i) => v - D.pb[i]);
+
+/* PNNL comparison: our top K counties among the states PNNL modeled, where K = the number PNNL chose. */
+const modeled = [...Array(N).keys()].filter(i => D.pm[i]);
+const K = modeled.filter(i => D.pr[i] > 0).length;
+const ours = new Set(modeled.slice().sort((a, b) => D.pa[b] - D.pa[a]).slice(0, K));
+const pcat = i => !D.pm[i] ? 4 : (ours.has(i) ? (D.pr[i] > 0 ? 0 : 1) : (D.pr[i] > 0 ? 2 : 3));
+const PCAT = ['Both', 'Our model only', 'PNNL only', 'Neither', 'Not modeled by PNNL'];
+
+const bin = (v, cuts) => { let k = 0; while (k < cuts.length && v >= cuts[k]) k++; return k; };
+const SEQ = ['--s1', '--s2', '--s3', '--s4', '--s5'], DIV = ['--dn2', '--dn1', '--mid', '--up1', '--up2'], CAT = ['--c1', '--c2', '--c3'];
+const few = D.clusters.length <= 3;
+let focus = 0;
+const LAYERS = {
+  likely: { name: 'Predicted likelihood',
+    caption: 'How likely each county is to host a data center, from the model that includes state policy. Darker means more likely.',
+    fill: i => `var(${SEQ[bin(D.pa[i], [.05, .15, .30, .50])]})`,
+    legend: ['Under 5%', '5 to 15%', '15 to 30%', '30 to 50%', '50% or more'].map((t, k) => [SEQ[k], t]),
+    tip: i => 'Likelihood ' + pct(D.pa[i]) },
+  change: { name: 'What policy changed',
+    caption: 'Likelihood with policy features minus likelihood from infrastructure alone. Blue counties look more likely once policy is included, red less likely, gray about the same.',
+    fill: i => `var(${DIV[bin(chg[i], [-.05, -.01, .01, .05])]})`,
+    legend: ['Down 5+ pts', 'Down 1 to 5', 'Within 1 pt', 'Up 1 to 5', 'Up 5+ pts'].map((t, k) => [DIV[k], t]),
+    tip: i => 'Policy ' + pp(chg[i]) + ' (' + pct(D.pb[i]) + ' to ' + pct(D.pa[i]) + ')' },
+  arch: { name: 'County archetype',
+    caption: 'Groups of counties with similar infrastructure, land, cost and policy profiles. Paler counties sit between two groups.' + (few ? '' : ' Pick an archetype in the legend to highlight it.'),
+    fill: i => few ? `var(${CAT[D.cl[i]]})` : (D.cl[i] === focus ? 'var(--c1)' : 'var(--none)'),
+    alpha: i => 1 - 0.6 * D.ent[i],
+    legend: D.clusters.map((c, k) => [few ? CAT[k] : (k === focus ? '--c1' : '--none'), c.name, k]),
+    tip: i => D.clusters[D.cl[i]].name + ', ' + (D.ent[i] < .33 ? 'clear fit' : D.ent[i] < .66 ? 'moderate fit' : 'borderline') },
+  pnnl: { name: 'Versus PNNL forecast',
+    caption: `PNNL's forecast picks ${K} counties for new hyperscale data centers by 2035 without any policy data. This compares them with our ${K} most likely counties in the same states.`,
+    fill: i => ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--none)', 'url(#hatch)'][pcat(i)],
+    legend: [['--c1', PCAT[0]], ['--c2', PCAT[1]], ['--c3', PCAT[2]], ['--none', PCAT[3]], ['hatch', PCAT[4]]],
+    tip: i => PCAT[pcat(i)] },
+};
+let layer = 'likely', selected = -1;
+
+/* ---- build the map ---- */
+const svg = $('map'), gC = $('counties');
+svg.setAttribute('viewBox', `0 0 ${D.W} ${D.H}`);
+const paths = D.path.map((d, i) => { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); p.setAttribute('class', 'c'); p.dataset.i = i; gC.appendChild(p); return p; });
+$('states').setAttribute('d', D.states);
+const dots = (g, pts) => { for (let k = 0; k < pts.length; k += 2) { const c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', pts[k]); c.setAttribute('cy', pts[k + 1]); g.appendChild(c); } };
+dots($('sites'), D.sites); dots($('proj'), D.proj);
+
+function paint() {
+  const L = LAYERS[layer], fade = $('t-viable').checked;
+  for (let i = 0; i < N; i++) {
+    paths[i].setAttribute('fill', L.fill(i));
+    paths[i].setAttribute('fill-opacity', ((L.alpha ? L.alpha(i) : 1) * (fade && !D.via[i] ? 0.15 : 1)).toFixed(2));
+  }
+  $('caption').textContent = L.caption;
+  $('legend').innerHTML = L.legend.map(([c, t, k]) => {
+    const sw = `<i class="sw" style="background:${c === 'hatch' ? 'repeating-linear-gradient(45deg,var(--axis) 0 2px,var(--none) 2px 5px)' : `var(${c})`}"></i>`;
+    return (layer === 'arch' && !few) ? `<span><button type="button" class="pick" data-k="${k}" style="all:unset;cursor:pointer;display:inline-flex;gap:6px;align-items:center">${sw}${esc(t)}</button></span>` : `<span>${sw}${esc(t)}</span>`;
+  }).join('');
+  document.querySelectorAll('#layers button').forEach(b => b.setAttribute('aria-pressed', b.dataset.l === layer));
+}
+$('layers').innerHTML = Object.entries(LAYERS).map(([k, L]) => `<button type="button" data-l="${k}">${L.name}</button>`).join('');
+$('layers').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { layer = b.dataset.l; paint(); } });
+$('legend').addEventListener('click', e => { const b = e.target.closest('.pick'); if (b) { focus = +b.dataset.k; paint(); } });
+$('t-viable').addEventListener('change', paint);
+const vis = () => { $('sites').style.display = $('t-sites').checked ? '' : 'none'; $('proj').style.display = $('t-proj').checked ? '' : 'none'; };
+$('t-sites').addEventListener('change', vis); $('t-proj').addEventListener('change', vis);
+
+/* ---- pan and zoom on the viewBox ---- */
+let vb = [0, 0, D.W, D.H];
+function view() {
+  svg.setAttribute('viewBox', vb.join(' '));
+  const wpx = svg.clientWidth || 900, u = vb[2] / wpx, px = Math.max(0.9, Math.min(2, wpx / 420)) * Math.min(1.8, Math.sqrt(D.W / vb[2]));
+  document.querySelectorAll('#sites circle').forEach(c => c.setAttribute('r', px * u));
+  document.querySelectorAll('#proj circle').forEach(c => c.setAttribute('r', 1.9 * px * u));
+}
+function zoom(f, cx = vb[0] + vb[2] / 2, cy = vb[1] + vb[3] / 2) {
+  const w = Math.min(D.W, Math.max(D.W / 24, vb[2] * f)), h = w * D.H / D.W;
+  vb = [cx - (cx - vb[0]) * w / vb[2], cy - (cy - vb[1]) * h / vb[3], w, h]; clamp(); view();
+}
+function clamp() { vb[0] = Math.min(Math.max(vb[0], 0), D.W - vb[2]); vb[1] = Math.min(Math.max(vb[1], 0), D.H - vb[3]); }
+const toMap = e => { const r = svg.getBoundingClientRect(); return [vb[0] + (e.clientX - r.left) / r.width * vb[2], vb[1] + (e.clientY - r.top) / r.height * vb[3]]; };
+$('zin').onclick = () => zoom(1 / 1.6); $('zout').onclick = () => zoom(1.6); $('zreset').onclick = () => { vb = [0, 0, D.W, D.H]; view(); };
+svg.addEventListener('wheel', e => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); const [x, y] = toMap(e); zoom(e.deltaY > 0 ? 1.25 : 0.8, x, y); }, { passive: false });
+let drag = null, moved = false;
+svg.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, vb: vb.slice() }; moved = false; });
+addEventListener('pointerup', () => { drag = null; svg.classList.remove('drag'); });
+svg.addEventListener('pointermove', e => {
+  if (drag) {
+    const r = svg.getBoundingClientRect(), dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) { moved = true; svg.classList.add('drag'); $('tip').hidden = true; }
+    if (moved) { vb[0] = drag.vb[0] - dx / r.width * vb[2]; vb[1] = drag.vb[1] - dy / r.height * vb[3]; clamp(); svg.setAttribute('viewBox', vb.join(' ')); }
+    return;
+  }
+  const p = e.target.closest('path.c'), tip = $('tip');
+  if (!p) { tip.hidden = true; return; }
+  const i = +p.dataset.i, box = $('mapbox').getBoundingClientRect();
+  tip.innerHTML = `<b>${esc(label(i))}</b>${esc(LAYERS[layer].tip(i))}`; tip.hidden = false;
+  const x = e.clientX - box.left, y = e.clientY - box.top;
+  tip.style.left = Math.min(x + 14, box.width - tip.offsetWidth - 6) + 'px';
+  tip.style.top = (y + 16 + tip.offsetHeight > box.height ? y - tip.offsetHeight - 10 : y + 16) + 'px';
+});
+svg.addEventListener('pointerleave', () => { $('tip').hidden = true; });
+svg.addEventListener('click', e => { const p = e.target.closest('path.c'); if (p && !moved) select(+p.dataset.i); });
+
+/* ---- selected county ---- */
+function select(i, fly) {
+  selected = i; $('sel').setAttribute('d', D.path[i]);
+  const c = D.clusters[D.cl[i]], fit = D.ent[i] < .33 ? 'clear fit' : D.ent[i] < .66 ? 'moderate fit' : 'borderline';
+  const pn = !D.pm[i] ? 'State not modeled' : D.pn[i] + ' of ' + D.nscen + ' scenarios';
+  $('county').innerHTML = `<div class="lab">Selected county</div><h2>${esc(label(i))}</h2><dl>
+    <dt>Data centers today</dt><dd>${D.nc[i] ? D.nc[i].toLocaleString() + (D.big[i] ? ' (' + D.big[i] + ' large)' : '') : 'None mapped'}</dd>
+    <dt>Likelihood, infrastructure only</dt><dd>${pct(D.pb[i])}</dd>
+    <dt>Likelihood, with policy</dt><dd><b>${pct(D.pa[i])}</b> (${pp(chg[i])})</dd>
+    <dt>Archetype</dt><dd>${esc(c.name)}, ${fit}</dd>
+    <dt>Land suitable for a new site</dt><dd>${D.suit[i] == null ? 'n/a' : D.suit[i].toFixed(1) + '%'}</dd>
+    <dt>Chosen by PNNL</dt><dd>${pn}</dd></dl>
+    <div class="lab" style="margin-top:12px">What drives this prediction</div>
+    <ul>${D.drv[i].map(k => `<li>${esc(D.dv[k])}</li>`).join('')}</ul>`;
+  if (fly) { const w = D.W / 5, h = w * D.H / D.W; vb = [D.cx[i] - w / 2, D.cy[i] - h / 2, w, h]; clamp(); view(); }
+}
+$('county-list').innerHTML = [...Array(N).keys()].map(i => `<option value="${esc(label(i))}">`).join('');
+const byLabel = new Map([...Array(N).keys()].map(i => [label(i).toLowerCase(), i]));
+$('search').addEventListener('change', e => { const i = byLabel.get(e.target.value.trim().toLowerCase()); if (i != null) select(i, true); });
+
+/* ---- evidence column ---- */
+const S = D.metrics.scores;
+$('scores').querySelector('tbody').innerHTML = S.map((r, k) => `<tr class="${k === S.length - 1 ? 'key' : ''}"><td>${esc(r.features)}</td><td class="num">${r.pr_auc.toFixed(3)}</td><td class="num">${r.brier.toFixed(3)}</td></tr>`).join('');
+const prev = D.nc.filter(v => v > 0).length / N;
+$('score-note').textContent = `${D.metrics.model}, scored on held-out states. PR-AUC: higher is better, and a random guess scores ${prev.toFixed(3)}. Brier: lower is better. The fair test of policy is the last row against the middle one.`;
+const d = S[S.length - 1].pr_auc - S[S.length - 2].pr_auc;
+$('delta').textContent = (d >= 0 ? '+' : '−') + Math.abs(d).toFixed(3);
+$('delta-note').textContent = 'PR-AUC from adding policy, beyond knowing the state';
+$('finding').textContent = D.metrics.finding;
+
+const maxShare = Math.max(...D.clusters.map(c => c.share), prev) || 1;
+$('bars').innerHTML = D.clusters.map((c, k) => `<div class="bar"><span class="name"><i class="sw" style="background:var(${few ? CAT[k] : '--c1'})"></i>${esc(c.name)}</span><span>${pct(c.share)} of ${c.n.toLocaleString()}</span>
+  <div class="track"><div class="fill" style="width:${100 * c.share / maxShare}%;background:var(${few ? CAT[k] : '--c1'})"></div><div class="avg" style="left:${100 * prev / maxShare}%"></div></div></div>`).join('');
+
+const top = [...Array(N).keys()].sort((a, b) => D.pa[b] - D.pa[a]).slice(0, 25);
+$('top').querySelector('tbody').innerHTML = top.map(i => `<tr><td>${esc(label(i))}</td><td class="num">${pct(D.pa[i])}</td><td class="num">${pp(chg[i])}</td><td>${esc(D.clusters[D.cl[i]].name)}</td><td class="num">${D.nc[i]}</td><td>${PCAT[pcat(i)]}</td></tr>`).join('');
+
+$('sources').innerHTML = D.sources.map(s => `<li>${esc(s)}</li>`).join('');
+$('built').textContent = 'Built ' + D.built + '.';
+if (D.placeholder.length) { $('placeholder').hidden = false; $('placeholder').textContent = 'Placeholder data. ' + D.placeholder.join(' ') + ' Colors and numbers below test the layout and are not findings.'; }
+
+paint(); vis(); view(); select(top[0]);
+addEventListener('resize', view);
+})();
+</script>
