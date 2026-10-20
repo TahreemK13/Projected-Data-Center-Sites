@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI Regulation and Data Center Siting</title>
@@ -7,27 +7,16 @@
 <style>
 /* Layout: one finding on top, one map that carries four questions, a narrow evidence column beside it. */
 :root {
-  --page: #f6f7f5; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781; --line: #e1e0d9; --axis: #c3c2b7;
-  --warn: #8a5200; --warn-bg: #fdf1dc;
-  --s1: #cde2fb; --s2: #86b6ef; --s3: #3987e5; --s4: #1c5cab; --s5: #0d366b;
-  --dn2: #c93a39; --dn1: #f2aaa9; --mid: #f0efec; --up1: #9ec5f4; --up2: #256abf;
-  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --none: #ebeae5;
+  /* Always dark: one theme, no light or system-preference variants. */
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781; --line: #2c2c2a; --axis: #383835;
+  --warn: #f3b659; --warn-bg: #2e2410;
+  --s1: #0d366b; --s2: #1c5cab; --s3: #3987e5; --s4: #e0642c; --s5: #f6e54d; /* likelihood: blues, then orange, then yellow */
+  --dn2: #e66767; --dn1: #7d3030; --mid: #383835; --up1: #184f95; --up2: #5598e7;
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --none: #2a2a28;  color-scheme: dark;
   --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781; --line: #2c2c2a; --axis: #383835;
-  --warn: #f3b659; --warn-bg: #2e2410;
-  --s1: #0d366b; --s2: #1c5cab; --s3: #3987e5; --s4: #86b6ef; --s5: #cde2fb;
-  --dn2: #e66767; --dn1: #7d3030; --mid: #383835; --up1: #184f95; --up2: #5598e7;
-  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --none: #2a2a28; color-scheme: dark } }
-:root[data-theme="dark"] {
-  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781; --line: #2c2c2a; --axis: #383835;
-  --warn: #f3b659; --warn-bg: #2e2410;
-  --s1: #0d366b; --s2: #1c5cab; --s3: #3987e5; --s4: #86b6ef; --s5: #cde2fb;
-  --dn2: #e66767; --dn1: #7d3030; --mid: #383835; --up1: #184f95; --up2: #5598e7;
-  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --none: #2a2a28; color-scheme: dark }
 
 * { box-sizing: border-box }
 body { background: var(--page); color: var(--ink); font: 15px/1.5 var(--sans) }
@@ -109,7 +98,7 @@ footer ul { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: 
   <header>
     <div class="lab">SIADS 696 Milestone II · University of Michigan</div>
     <h1>AI Regulation and Data Center Siting</h1>
-    <p>We predicted which US counties host a data center, first from infrastructure alone, then with state AI and data center legislation added. This page shows where the model expects data centers, where policy changes that expectation, and how both compare with the national lab forecast that uses no policy data.</p>
+    <p>We predicted which US counties could host a data center, first from infrastructure, then with state AI and data center legislation added. This page shows where the model expects data centers, where policy changes that expectation, and how both compare with a national lab forecast model which doesn't use policy data.</p>
   </header>
 
   <section class="card finding" aria-label="Headline finding">
@@ -200,7 +189,7 @@ const few = D.clusters.length <= 3;
 let focus = 0;
 const LAYERS = {
   likely: { name: 'Predicted likelihood',
-    caption: 'How likely each county is to host a data center, from the model that includes state policy. Darker means more likely.',
+    caption: 'How likely a county is, to host a data center, from a model including state policy. Blue = less likely; orange and yellow = most likely (30% and up).',
     fill: i => `var(${SEQ[bin(D.pa[i], [.05, .15, .30, .50])]})`,
     legend: ['Under 5%', '5 to 15%', '15 to 30%', '30 to 50%', '50% or more'].map((t, k) => [SEQ[k], t]),
     tip: i => 'Likelihood ' + pct(D.pa[i]) },
